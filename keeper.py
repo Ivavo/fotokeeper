@@ -4,16 +4,46 @@ import magic
 import json
 import zipfile
 import pathlib
+import hashlib
+from cryptography.fernet import Fernet
+
+def load_key():
+    with open('key.txt', 'rb') as key_file:
+        key = key_file.read()
+        return key
+
+
+key = load_key()
 
 
 def logging(data, file_name):
+    key = load_key()
+    crypto = Fernet(key)
+    one_str_data = ':'.join(data)
+    bytes_data = bytes(one_str_data, 'utf-8')
+    encrypt_data = crypto.encrypt(bytes_data)
+    with open(file_name, 'wb') as log:
+        log.write(encrypt_data)
+        print('logged')
+
+
+def _logging(data, file_name):
     with open(file_name, 'w') as log:
         json.dump(data, log)
+        print('logged')
 
 
 def read_log(file_name):
-    with open(file_name, 'r+') as log:
-        images_log = json.load(log)
+    key = load_key()
+    crypto = Fernet(key)
+    with open(file_name, 'rb') as log:
+        text = log.read()
+        print(text)
+        decrypted_data = crypto.decrypt(text)
+        decoded_data = decrypted_data.decode('utf-8')
+        print(decoded_data)
+        images_log = decoded_data.split(':')
+        print(images_log)
         return images_log
 
 
@@ -29,45 +59,51 @@ def image_seeker(images_route):
         try:
             file_format = magic.from_file(files_path, mime=True).split('/')
         except IsADirectoryError:
-            continue
+            pass
         file_type = file_format[0]
         if file_type == 'image':
             images.append(img_name)
+    kn = tuple(images)
+    m = hash(kn)
+
+    print(images, m, sep='\n')
     return images
 
 
 _route = pathlib.Path(__file__).parents[1]
-
-k = 0
-log_name = 'log.json'
-while True:
-    program_route = pathlib.Path().iterdir()
-    images_route = pathlib.Path('..').iterdir()
-    time.sleep(3)
-    k += 1
-    print('---------------------------------', k)
-
-    status = []
-    images = image_seeker(images_route)
-    print(images)
-    for files in program_route:
-        status.append(str(files))
-    if log_name not in status:
-        logging(images, log_name)
-    elif log_name in status:
+log_name = 'log.txt'
+sleep_time = 2
+try:
+    while True:
+        print('loop')
+        program_route = pathlib.Path().iterdir()
+        images_route = pathlib.Path('..').iterdir()
+        time.sleep(sleep_time)
+        status = []
         try:
-            images_log = read_log(log_name)
-            log_number = len(images_log)
-            current_number = len(images)
-            if log_number < current_number:
-                difference = list(set(images) - set(images_log))
-                if 'difference_log.json' not in status:
-                    logging(difference, "difference_log.json")
-                else:
-                    logging(difference, "difference_log.json")
-            else:
-                continue
-        except Exception:
-            continue
-
+            images = image_seeker(images_route)
+            for files in program_route:
+                status.append(str(files))
+            if log_name not in status:
+                logging(images, log_name)
+            elif log_name in status:
+                try:
+                    images_log = read_log(log_name)
+                    log_number = len(images_log)
+                    current_number = len(images)
+                    if log_number < current_number:
+                        difference = list(set(images) - set(images_log))
+                        if 'difference_log.json' not in status:
+                            logging(difference, "difference_log.json")
+                        else:
+                            logging(difference, "difference_log.json")
+                    else:
+                        pass
+                except Exception:
+                    pass
+        except FileNotFoundError:
+            pass
+        logging(images, log_name)
+except KeyboardInterrupt:
+    print("Job ended!")
     logging(images, log_name)

@@ -4,16 +4,13 @@ import magic
 import json
 import zipfile
 import pathlib
-import hashlib
 from cryptography.fernet import Fernet
+
 
 def load_key():
     with open('key.txt', 'rb') as key_file:
         key = key_file.read()
         return key
-
-
-key = load_key()
 
 
 def logging(data, file_name):
@@ -48,6 +45,7 @@ def read_log(file_name):
 
 
 def image_seeker(images_route):
+    global file_format
     images = []
     status = []
     for file_names in images_route:
@@ -70,9 +68,17 @@ def image_seeker(images_route):
     return images
 
 
+def zipping(data, regime, name='Archive.7z'):
+    with zipfile.ZipFile(name, f'{regime}') as archive:
+        for file in data:
+            file_path = os.path.join('..', file)
+            print(file_path)
+            archive.write(file_path)
+
+
 _route = pathlib.Path(__file__).parents[1]
 log_name = 'log.txt'
-sleep_time = 2
+sleep_time = 10
 try:
     while True:
         print('loop')
@@ -86,24 +92,34 @@ try:
                 status.append(str(files))
             if log_name not in status:
                 logging(images, log_name)
+                print('log_file not in directory making log file and archive! ')
+                zipping(images, 'w')
             elif log_name in status:
                 try:
                     images_log = read_log(log_name)
                     log_number = len(images_log)
                     current_number = len(images)
-                    if log_number < current_number:
+                    if images_log != images:
                         difference = list(set(images) - set(images_log))
-                        if 'difference_log.json' not in status:
-                            logging(difference, "difference_log.json")
+                        if 'difference_log.txt' not in status:
+                            logging(difference, "difference_log.txt")
+                            zipping(difference, 'w', 'New.zip')
+                            print('difference_list not found')
                         else:
-                            logging(difference, "difference_log.json")
+                            logging(difference, "difference_log.txt")
+                            print('ttt', difference)
+                            zipping(difference, 'a', name='New.zip')
+
                     else:
+                        read_log('difference_log.txt')
                         pass
-                except Exception:
+
+                except FileNotFoundError:
                     pass
         except FileNotFoundError:
             pass
         logging(images, log_name)
+
 except KeyboardInterrupt:
     print("Job ended!")
     logging(images, log_name)

@@ -61,10 +61,6 @@ def image_seeker(images_route):
         file_type = file_format[0]
         if file_type == 'image':
             images.append(img_name)
-    kn = tuple(images)
-    m = hash(kn)
-
-    print(images, m, sep='\n')
     return images
 
 

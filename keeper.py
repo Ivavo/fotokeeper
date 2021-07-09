@@ -1,5 +1,4 @@
 import os
-import sys
 import time
 import magic
 import zipfile
@@ -15,26 +14,25 @@ def new_seeker():
     iteration_files = os.walk(_route1)
     roads = []
     files = []
-    for i in iteration_files:
-        if str(route_root) in str(i[0]):
+    for elements in iteration_files:
+        if str(route_root) in str(elements[0]):
             continue
         else:
-            string = i[0], i[2]
-            roads.append(string)
-    #print(roads)
-    for i in roads:
-        for t in i[1]:
-            r = os.path.join(i[0], t)
-            #print(r)
+            road = elements[0], elements[2]
+            roads.append(road)
+    for road_element in roads:
+        for file in road_element[1]:
+            file_path = os.path.join(road_element[0], file)
+
             try:
-                file_format_name = magic.from_file(r, mime=True).split('/')
-                #print(file_format_name)
+                file_format_name = magic.from_file(file_path, mime=True).split('/')
                 if file_format_name[0] == 'image':
-                    files.append(t)
+                    files.append(file)
             except IsADirectoryError:
                 pass
-    #print(files, len(files), sep='\n')
     return files, roads
+
+
 ###############################################################################################
 
 
@@ -67,37 +65,47 @@ def read_log(file_name):
         return images_log
 
 
-def uploader(log_name, dir_name='/run/user/1000/gvfs/smb-share:server=freenas.local,share=disk/a'):
-    try:
-        dir_name = dir_name
-        files_list = read_log(log_name)
-        for file in files_list:
-            route = file
-            print(file)
-            if route != '':
-                try:
-                    source = f'/home/pc/project5/photokeeper/{route}'
-                    if os.path.exists(source):
-                        result_path = os.path.join(dir_name, route)
-                        print(result_path)
-                        moving = shutil.move
-                        moving(source, result_path)
-                    else:
-                        print('not')
-                except OSError:
-                    continue
-                # except OSError:
-                # files = []
-                # files.append(file)
-                # logging(files, 'Error_log.txt')
-                # sys.exit("Не має доступу до цільової директорії")
-                # pass
-            else:
-                pass
-        if log_name == 'Error_log.txt':
-            os.remove('Error_log.txt')
-    except FileNotFoundError:
-        pass
+def archives_upload(name, addr='/run/user/1000/gvfs/smb-share:server=freenas.local,share=disk/a'):
+    path_exist = os.path.exists(addr)
+    if path_exist == True:
+        print()
+
+
+#def uploader(log_name, dir_name='/run/user/1000/gvfs/smb-share:server=freenas.local,share=disk/a'):
+#    path_exist = os.path.exists('/run/user/1000/gvfs/smb-share:server=freenas.local,share=disk/a')
+#    if path_exist == True:
+#        try:
+#            dir_name = dir_name
+#            files_list = read_log(log_name)
+#            for file in files_list:
+#                route = file
+#                print(file)
+#                if route != '':
+#                    try:
+#                        source = f'/home/pc/project5/photokeeper/{route}'
+#                        if os.path.exists(source):
+#                            result_path = os.path.join(dir_name, route)
+#                            print(result_path)
+#                            moving = shutil.move
+#                            moving(source, result_path)
+#                        else:
+#                            print('not')
+#                    except OSError:
+#                        continue
+#                    # except OSError:
+#                    # files = []
+#                    # files.append(file)
+#                    # logging(files, 'Error_log.txt')
+#                    # sys.exit("Не має доступу до цільової директорії")
+#                    # pass
+#                else:
+#                    pass
+#            if log_name == 'Error_log.txt':
+#                os.remove('Error_log.txt')
+#        except FileNotFoundError:
+#            pass
+#    else:
+#        print('Upload directory is not found')
 
 
 _route = pathlib.Path(__file__).parents[1]
@@ -128,9 +136,7 @@ def image_seeker(images_route):
         file_format = image_check(files_path)
         if str(files_path) != str(root_dir) and is_dir == True:
             dirs.append(files_path)
-
         if file_format is None:
-            # print(files_path)
             continue
         file_type = file_format[0]
         if file_type == 'image':
@@ -140,12 +146,18 @@ def image_seeker(images_route):
 
 
 def zipping_folder(addr, regime, name):
-    print(addr)
     dir_route = pathlib.Path(addr).iterdir()
     with zipfile.ZipFile(name, f'{regime}') as archive:
         for file in dir_route:
-            print(file)
-            archive.write(file)
+            try:
+                file_format_name = magic.from_file(str(file), mime=True).split('/')
+                file_format = file_format_name[0]
+                if file_format == 'image':
+                    archive.write(file)
+                else:
+                    pass
+            except IsADirectoryError:
+                continue
 
 
 def zipping(data, regime, name='Archive.zip'):
@@ -157,7 +169,7 @@ def zipping(data, regime, name='Archive.zip'):
 
 
 def main():
-    uploader('Error_log.txt')
+    global images
     try:
         while True:
             print('loop')
@@ -167,30 +179,28 @@ def main():
             status = []
             try:
                 images, roads = new_seeker()
-                print(roads)
-                print(images)
-                #print(images)
                 for files in program_route:
                     status.append(str(files))
                 if log_name not in status:
                     logging(images, log_name)
                     print('log_file not in directory making log file and archive!')
-                    zipping(images, 'w')
+                    for road in roads:
+                        folder_path = str(road[0])
+                        splited_string = folder_path.split('/')
+                        archives_name = (splited_string[-1] + '.zip')
+                        print(archives_name)
+                        zipping_folder(folder_path, 'w', archives_name)
                 elif log_name in status:
                     try:
                         images_log = read_log(log_name)
                         log_number = len(images_log)
                         current_number = len(images)
-                        #print(images, current_number, log_number)
                         if current_number > log_number or current_number == 1:
                             difference = list(set(images) - set(images_log))
                             file_name = 'difference_log.txt'
-                            archive_name = 'New.zip'
                             path_names = []
                             for names in roads:
-                                print(names)
                                 for n in difference:
-
                                     if n in names[1]:
                                         dir_name_path = names[0]
                                         if dir_name_path not in path_names:
@@ -199,21 +209,14 @@ def main():
                                             pass
                                     else:
                                         pass
-                            print(path_names)
                             logging(path_names, 'addres_log.txt')
                             for i in path_names:
-                                print(type(i))
                                 name = i.split('/')
-                                zipping_folder(i, 'w', name=str(name[-1]+'.zip'))
+                                zipping_folder(i, 'w', name=str(name[-1] + '.zip'))
                             if file_name not in status:
                                 logging(difference, file_name)
-                                zipping(difference, 'w', archive_name)
-                                print('difference_list not found')
                             else:
                                 logging(difference, file_name)
-                                #print('ttt')
-                                # zipping(difference, 'a', archive_name)
-                                #uploader('difference_log.txt')
                         elif current_number <= log_number:
                             pass
 
@@ -222,7 +225,6 @@ def main():
             except FileNotFoundError:
                 pass
             logging(images, log_name)
-            #print(_route)
     except KeyboardInterrupt:
         print("Job ended!")
         logging(images, log_name)

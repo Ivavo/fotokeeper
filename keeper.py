@@ -8,14 +8,13 @@ import shutil
 from cryptography.fernet import Fernet
 from sys import platform
 from tqdm import tqdm
-
+import ast
 
 path_separator = None
 if platform == 'win32':
     path_separator = '\\'
 elif platform == 'linux' or platform == 'linux2':
     path_separator = '/'
-
 
 
 file_formats = (
@@ -45,7 +44,8 @@ file_formats = (
                 'webp',
                 'xbm',
                 'xps',
-                'oxps'
+                'oxps',
+                'flac'
                 )
 
 
@@ -53,15 +53,22 @@ def new_seeker():
     route_root = pathlib.Path(__file__).parents[0]
     _route1 = pathlib.Path(__file__).parents[1]
     iteration_files = os.walk(_route1)
+    dirs = []
     roads = []
     files = []
     for elements in iteration_files:
         if str(route_root) in str(elements[0]):
             continue
         else:
-            road = elements[0], elements[2]
+            images = []
+            for i in elements[2]:
+                resolution = i.split('.')[-1]
+                if resolution in file_formats:
+                    images.append(i)
+            road = elements[0], images
             roads.append(road)
     for road_element in roads:
+        dirs.append(road_element[0])
         for file in road_element[1]:
             file_path = os.path.join(road_element[0], file)
             try:
@@ -71,7 +78,8 @@ def new_seeker():
                     files.append(file)
             except IsADirectoryError:
                 pass
-    return files, roads
+
+    return files, roads, dirs
 
 
 def load_key():
@@ -102,9 +110,8 @@ def read_log(file_name):
         return images_log
 
 
-def uploader(archive_name = None, result_path ='Z:\dataset1'):
+def uploader(archive_name = None, result_path = 'Y:\main'):
     sourse_road = pathlib.Path(__file__).parents[0]
-    result_path = os.path.join('Z:\dataset1')
     if archive_name == None:
         archives = []
         program_route = pathlib.Path(sourse_road).iterdir()
@@ -126,7 +133,7 @@ def uploader(archive_name = None, result_path ='Z:\dataset1'):
 
 _route = pathlib.Path(__file__).parents[1]
 log_name = 'log.txt'
-sleep_time = 5
+sleep_time = 3
 
 
 def file_size_check(addr=pathlib.Path(__file__).parents[0]):
@@ -140,38 +147,6 @@ def file_size_check(addr=pathlib.Path(__file__).parents[0]):
            size = (name, file_size)
            sizes.append(size)
     return sizes
-
-
-def image_check(files_path):
-    try:
-        file_format_name = magic.from_file(files_path, mime=True).split('/')
-        return file_format_name
-    except IsADirectoryError:
-        pass
-
-
-def image_seeker(images_route):
-    images = []
-    status = []
-    dirs = []
-    for file_names in images_route:
-        file = str(file_names).split('/')[1]
-        status.append(file)
-    for file in status:
-        img_name = file
-        files_path = os.path.join(_route, img_name)
-        root_dir = pathlib.Path(__file__).parents[0]
-        is_dir = os.path.isdir(files_path)
-        file_format = image_check(files_path)
-        if str(files_path) != str(root_dir) and is_dir == True:
-            dirs.append(files_path)
-        if file_format is None:
-            continue
-        file_type = file_format[0]
-        if file_type == 'image':
-            images.append(img_name)
-    print(dirs)
-    return images
 
 
 def zipping_folder(addr, regime, name):
@@ -188,14 +163,6 @@ def zipping_folder(addr, regime, name):
                     pass
             except IsADirectoryError:
                 continue
-
-
-def zipping(data, regime, name='Archive.zip'):
-    with zipfile.ZipFile(name, f'{regime}') as archive:
-        for file in data:
-            file_path = os.path.join('..', file)
-            print(file_path)
-            archive.write(file_path)
 
 
 def archive_sort(roads, difference):
@@ -219,10 +186,7 @@ def archive_sort(roads, difference):
         print(name)
 
 
-
-def main():
-    global images
-    result_path = os.path.join('Z:\dataset1')
+def archives_check(result_path):
     path_exist = os.path.exists(result_path)
     if path_exist == True:
         size1 = file_size_check()
@@ -231,66 +195,130 @@ def main():
         if len(size_difference) != 0:
             for archives in size_difference:
                 name = archives[0]
-                uploader(name)
+                uploader(name, result_path)
         else:
             for i in size1:
                 name = i[0]
                 path = os.path.join(pathlib.Path(__file__).parents[0], name)
                 os.remove(path)
-                print(path)
     else:
         print('Result path not exist, check path')
         exit()
+
+
+def bin_writer(text, name='settings.bin'):
+    with open(name, 'wb')as settings:
+        text_b = text.encode('utf-8')
+        settings.write(text_b)
+
+
+def bin_reader(bin_file='settings.bin'):
+    with open(bin_file, 'rb')as settings:
+        rb_text = settings.read()
+        r_text = rb_text.decode('utf-8')
+        return r_text
+
+
+def main(result_path):
+    global images
+    archives_check(result_path)
     try:
-        while True:
-            print('loop')
-            program_route = pathlib.Path().iterdir()
-            time.sleep(sleep_time)
-            status = []
-            try:
-                images, roads = new_seeker()
-                for files in program_route:
-                    status.append(str(files))
-                if log_name not in status:
-                    logging(images, log_name)
-                    print('log_file not in directory making log file and archives!')
-                    for road in roads:
-                        folder_path = str(road[0])
-                        splited_string = folder_path.split(path_separator)
-                        archives_name = (splited_string[-1] + '.zip')
-                        zipping_folder(folder_path, 'w', archives_name)
-                        uploader()
-                elif log_name in status:
-                    try:
-                        images_log = read_log(log_name)
-                        log_number = len(images_log)
-                        current_number = len(images)
-                        if images_log != images:
-                            difference = list(set(images) - set(images_log))
-                            file_name = 'difference_log.txt'
-                            print(difference)
-                            if current_number > log_number or current_number == 1:
-                                archive_sort(roads, difference)
-                                if file_name not in status:
-                                    logging(difference, file_name)
-                                else:
-                                    logging(difference, file_name)
-                            elif current_number == log_number:
-                                difference = list(set(images) - set(images_log))
-                                archive_sort(roads, difference)
-                            elif current_number < log_number:
-                                pass
-                        else:
-                            pass
-                    except FileNotFoundError:
-                        pass
-            except FileNotFoundError:
+        program_route = pathlib.Path().iterdir()
+        status = []
+        content = {}
+        try:
+            images, roads, dirs = new_seeker()
+            for i in roads:
+                i1 = i[1]
+                content.update({i[0]: i1})
+            p = str(content)
+            for files in program_route:
+                status.append(str(files))
+            if 'settings.bin' not in status:
+                bin_writer(result_path)
+            else:
                 pass
+            r_path = bin_reader()
+            if 'log1.bin' not in status or result_path != r_path or log_name not in status:
+                bin_writer(result_path)
+                bin_writer(str(content), 'log1.bin')
+                logging(images, log_name)
+                print('log_file not in directory making log file and archives!')
+                for road in roads:
+                    folder_path = str(road[0])
+                    splited_string = folder_path.split(path_separator)
+                    archives_name = (splited_string[-1] + '.zip')
+                    zipping_folder(folder_path, 'w', archives_name)
+                    logging(images, log_name)
+                    uploader(result_path=result_path)
+            elif log_name in status:
+                try:
+                    print(content)
+                    print(type(content))
+                    images_log = ast.literal_eval(bin_reader('log1.bin'))
+                    if content != images_log:
+                        for key in content:
+                            name = key.split('\\')[-1]+'.zip'
+                            current_content = content[key]
+                            if key not in images_log and len(current_content) != 0:
+                                zipping_folder(key, 'w', name)
+                                bin_writer(str(content), 'log1.bin')
+                            elif key in images_log:
+                                log_content = images_log[key]
+                                if current_content != log_content and len(current_content) != 0:
+                                    #if len(current_content) < len(log_content) and os.environ['Less_archives_make'] == 1:
+                                    #    zipping_folder(key, 'w', 'less_'+name)
+                                    #    bin_writer(str(content), 'log1.bin')
+                                    if len(current_content) < len(log_content):
+                                        pass
+                                    elif len(current_content) >= len(log_content):
+                                        zipping_folder(key, 'w', name)
+                                        bin_writer(str(content), 'log1.bin')
+
+                                else:
+                                    bin_writer(str(content), 'log1.bin')
+                                    pass
+                    else:
+                        bin_writer(str(content), 'log1.bin')
+                        pass
+                    #images_log = read_log(log_name)
+                    #log_number = len(images_log)
+                    #current_number = len(images)
+#
+                    #if images_log != images:
+                    #    difference = list(set(images) - set(images_log))
+                    #    file_name = 'difference_log.txt'
+                    #    logging(images, log_name)
+#
+                    #    if current_number > log_number or current_number == 1:
+                    #        archive_sort(roads, difference)
+#
+                    #        if file_name not in status:
+                    #            logging(difference, file_name)
+                    #        else:
+                    #            logging(difference, file_name)
+#
+                    #    elif current_number == log_number:
+                    #        difference = list(set(images) - set(images_log))
+                    #        archive_sort(roads, difference)
+#
+                    #    elif current_number < log_number:
+                    #        logging(images, log_name)
+                    #        pass
+#
+                    #else:
+                    #    pass
+#
+                except FileNotFoundError:
+                    pass
+
+        except FileNotFoundError:
+            pass
             logging(images, log_name)
     except KeyboardInterrupt:
         print("Job ended!")
         logging(images, log_name)
 
 
-#if __name__ == '__main__':
-#    start_check()
+if __name__ == '__main__':
+    main('Y:\main')

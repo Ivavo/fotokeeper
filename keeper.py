@@ -1,5 +1,7 @@
 #-*- coding: utf-8 -*-
 import os
+import sys
+import threading
 import time
 import magic
 import zipfile
@@ -9,12 +11,17 @@ from cryptography.fernet import Fernet
 from sys import platform
 from tqdm import tqdm
 import ast
+import user_interface
 
 path_separator = None
 if platform == 'win32':
     path_separator = '\\'
 elif platform == 'linux' or platform == 'linux2':
     path_separator = '/'
+
+#_route = pathlib.Path(__file__).parents[1]
+log_name = 'log.txt'
+sleep_time = 3
 
 
 file_formats = (
@@ -44,8 +51,7 @@ file_formats = (
                 'webp',
                 'xbm',
                 'xps',
-                'oxps',
-                'flac'
+                'oxps'
                 )
 
 
@@ -110,8 +116,10 @@ def read_log(file_name):
         return images_log
 
 
-def uploader(archive_name = None, result_path = 'Y:\main'):
+def uploader(archive_name=None, result_path='Y:\main'):
     sourse_road = pathlib.Path(__file__).parents[0]
+    progresBar = user_interface.My_app()
+    progresBar.ui.progressBar.setValue(10)
     if archive_name == None:
         archives = []
         program_route = pathlib.Path(sourse_road).iterdir()
@@ -127,13 +135,7 @@ def uploader(archive_name = None, result_path = 'Y:\main'):
             print('error')
     else:
         path_to_archive = os.path.join(sourse_road, archive_name)
-        print(path_to_archive)
         shutil.copy(path_to_archive, result_path)
-
-
-_route = pathlib.Path(__file__).parents[1]
-log_name = 'log.txt'
-sleep_time = 3
 
 
 def file_size_check(addr=pathlib.Path(__file__).parents[0]):
@@ -147,6 +149,21 @@ def file_size_check(addr=pathlib.Path(__file__).parents[0]):
            size = (name, file_size)
            sizes.append(size)
     return sizes
+
+
+def size_check(name=None, size=0):
+    file_size = 0
+    file_size_bit = 0
+    b = os.path.exists(name)
+    if b == True:
+        while file_size_bit < size:
+            file_size_bit = os.path.getsize(name)
+            file_size = file_size_bit // 1024
+            print(name, file_size)
+            time.sleep(1)
+        return file_size
+    else:
+        pass
 
 
 def zipping_folder(addr, regime, name):
@@ -165,27 +182,6 @@ def zipping_folder(addr, regime, name):
                 continue
 
 
-def archive_sort(roads, difference):
-    path_names = []
-    for names in roads:
-        for n in difference:
-            if n in names[1]:
-                dir_name_path = names[0]
-                if dir_name_path not in path_names:
-                    path_names.append(dir_name_path)
-                else:
-                    pass
-            else:
-                pass
-    logging(path_names, 'addres_log.txt')
-    for i in path_names:
-        splited_path = i.split(path_separator)
-        name = splited_path[-1] + '.zip'
-        zipping_folder(i, 'w', name=name)
-        uploader(name)
-        print(name)
-
-
 def archives_check(result_path):
     path_exist = os.path.exists(result_path)
     if path_exist == True:
@@ -196,6 +192,7 @@ def archives_check(result_path):
             for archives in size_difference:
                 name = archives[0]
                 uploader(name, result_path)
+
         else:
             for i in size1:
                 name = i[0]
@@ -220,8 +217,9 @@ def bin_reader(bin_file='settings.bin'):
 
 
 def main(result_path):
-    global images
     archives_check(result_path)
+    global images
+
     try:
         program_route = pathlib.Path().iterdir()
         status = []
@@ -253,8 +251,6 @@ def main(result_path):
                     uploader(result_path=result_path)
             elif log_name in status:
                 try:
-                    print(content)
-                    print(type(content))
                     images_log = ast.literal_eval(bin_reader('log1.bin'))
                     if content != images_log:
                         for key in content:
@@ -274,41 +270,13 @@ def main(result_path):
                                     elif len(current_content) >= len(log_content):
                                         zipping_folder(key, 'w', name)
                                         bin_writer(str(content), 'log1.bin')
-
                                 else:
                                     bin_writer(str(content), 'log1.bin')
                                     pass
                     else:
                         bin_writer(str(content), 'log1.bin')
                         pass
-                    #images_log = read_log(log_name)
-                    #log_number = len(images_log)
-                    #current_number = len(images)
-#
-                    #if images_log != images:
-                    #    difference = list(set(images) - set(images_log))
-                    #    file_name = 'difference_log.txt'
-                    #    logging(images, log_name)
-#
-                    #    if current_number > log_number or current_number == 1:
-                    #        archive_sort(roads, difference)
-#
-                    #        if file_name not in status:
-                    #            logging(difference, file_name)
-                    #        else:
-                    #            logging(difference, file_name)
-#
-                    #    elif current_number == log_number:
-                    #        difference = list(set(images) - set(images_log))
-                    #        archive_sort(roads, difference)
-#
-                    #    elif current_number < log_number:
-                    #        logging(images, log_name)
-                    #        pass
-#
-                    #else:
-                    #    pass
-#
+
                 except FileNotFoundError:
                     pass
 

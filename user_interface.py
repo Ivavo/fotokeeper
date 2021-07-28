@@ -28,15 +28,29 @@ def init_settings():
         r_Path = os.environ['r_Path']
     return timer, r_Path
 
+def visualizer():
+    if 'Images' in os.environ:
+        images = os.environ['Images']
+    else:
+        images = 'None'
+    print(type(images))
+    return images
+
+
+def run_visualizer(text):
+    v = My_app()
+    v.ui.textBrowser.setText(text)
+
 
 class Worker(QThread):
-
     def __init__(self, mainwindow, parent = None):
         super().__init__()
         self.mainwindow = mainwindow
         self.is_running = True
+    data_signal = QtCore.pyqtSignal(str)
 
     def run(self):
+        c = My_app()
         cont = 0
         timer, r_Path = init_settings()
         while True:
@@ -44,29 +58,29 @@ class Worker(QThread):
             cont += 1
             print(cont)
             keeper.main(r_Path)
+
             time.sleep(int(timer))
 
     def stop(self):
         self.is_running = False
         self.terminate()
+        self.quit()
 
 
 class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
 
-    data_signal = pyqtSignal(str)
 
     def __init__(self):
         super(My_app, self).__init__()
+        t = Worker.data_signal
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
         self.ui.pushButton_2.clicked.connect(self.set_target_folder)
         self.ui.pushButton_3.clicked.connect(self.launch_thread)
-
         self.ui.pushButton_4.clicked.connect(self.stop)
         self.ui.lineEdit_2.setText(init_settings()[1])
         self.ui.time_add.clicked.connect(self.time_sellector)
-        self.ui.textBrowser.setText('run')
         self.ui.spinBox.setValue(1)
         self.Worker_inst = Worker(mainwindow=self)
 
@@ -94,6 +108,7 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
+
     application = My_app()
     application.show()
     sys.exit(app.exec_())

@@ -1,5 +1,6 @@
 #-*- coding: utf-8 -*-
 import os
+import re
 import sys
 import threading
 import time
@@ -130,11 +131,18 @@ def uploader(archive_name=None, result_path='Y:\main'):
                     archives.append(str(i))
             for archive in archives:
                 path_to_file = os.path.join(sourse_road, archive)
+                os.environ['Size'] = os.path.getsize(path_to_file)
+                os.environ['File_Name'] = os.path.join(result_path, archive)
                 shutil.copy(path_to_file, result_path)
         else:
             print('error')
     else:
         path_to_archive = os.path.join(sourse_road, archive_name)
+        print(archive_name)
+        size = os.path.getsize(archive_name)
+        print(type(size))
+        os.environ['Size'] = str(size)
+        os.environ['File_Name'] = os.path.join(result_path, archive_name)
         shutil.copy(path_to_archive, result_path)
 
 
@@ -152,21 +160,25 @@ def file_size_check(addr=pathlib.Path(__file__).parents[0]):
 
 
 def size_check(name=None, size=0):
+    name = name
     file_size = 0
     file_size_bit = 0
     b = os.path.exists(name)
-    if b == True:
-        while file_size_bit < size:
-            file_size_bit = os.path.getsize(name)
-            file_size = file_size_bit // 1024
-            print(name, file_size)
-            time.sleep(1)
-        return file_size
-    else:
+    if name == None or b == False:
         pass
+    else:
+        file_size_bit = os.path.getsize(name)
+        file_size = file_size_bit // 1024
+        times.append(file_size)
+        print(name, file_size)
+        time.sleep(1)
+
+    return file_size_bit
+
 
 
 def zipping_folder(addr, regime, name):
+
     dir_route = pathlib.Path(addr).iterdir()
     with zipfile.ZipFile(name, f'{regime}') as archive:
         for file in tqdm(dir_route):
@@ -180,19 +192,32 @@ def zipping_folder(addr, regime, name):
                     pass
             except IsADirectoryError:
                 continue
-
+times = []
+def make_fine_names(size2):
+    names = []
+    for items in size2:
+        string = str(items[0])
+        size = str(items[1] / 1024)
+        item = string + ': - ' + size + ' Mb ;'
+        names.append(item)
+    return names
 
 def archives_check(result_path):
+
     path_exist = os.path.exists(result_path)
     if path_exist == True:
         size1 = file_size_check()
         size2 = file_size_check(result_path)
+        names = make_fine_names(size2)
+        os.environ['Images'] = '\n'.join(names)
         size_difference = set(size1) - set(size2)
         if len(size_difference) != 0:
             for archives in size_difference:
                 name = archives[0]
+                #size = os.path.getsize(name) // 1024
+                #print(size)
+                name_path = os.path.join(result_path, name)
                 uploader(name, result_path)
-
         else:
             for i in size1:
                 name = i[0]
@@ -248,9 +273,13 @@ def main(result_path):
                     archives_name = (splited_string[-1] + '.zip')
                     zipping_folder(folder_path, 'w', archives_name)
                     logging(images, log_name)
-                    uploader(result_path=result_path)
+                    uploader(archives_name, result_path)
             elif log_name in status:
                 try:
+                    p = user_interface.My_app()
+
+
+
                     images_log = ast.literal_eval(bin_reader('log1.bin'))
                     if content != images_log:
                         for key in content:
@@ -258,6 +287,7 @@ def main(result_path):
                             current_content = content[key]
                             if key not in images_log and len(current_content) != 0:
                                 zipping_folder(key, 'w', name)
+
                                 bin_writer(str(content), 'log1.bin')
                             elif key in images_log:
                                 log_content = images_log[key]

@@ -33,6 +33,7 @@ def visualizer(name = 'Images'):
         item = os.environ[name]
     else:
         item = 'None'
+        value = False
     return item
 
 
@@ -49,26 +50,21 @@ class Worker2(QThread):
         self.is_running = True
 
     def run(self):
-        count = 0
         progres = 0
         while True:
-
             name = visualizer('File_Name')
             size = visualizer('Size')
-
-            time.sleep(0.5)
-            current_size = keeper.size_check(name, size)
-
-
+            current_size = keeper.size_check(name)
             if current_size == 0:
-                continue
+                time.sleep(1)
+                pass
             else:
-
                 piese_of_progres = (int(current_size)/int(size)) * 100
                 self.signal.emit(piese_of_progres)
             if progres >= 100:
-                self.signal.emit(0)
-                pass
+                os.environ.pop('File_Name')
+                os.environ.pop('Size')
+            time.sleep(1)
 
 
     def stop(self):
@@ -78,7 +74,7 @@ class Worker2(QThread):
 
 
 class Worker(QThread):
-
+    signal_count = QtCore.pyqtSignal(int)
     def __init__(self, mainwindow, parent = None):
         super().__init__()
         self.mainwindow = mainwindow
@@ -90,9 +86,10 @@ class Worker(QThread):
         while True:
             self.is_running = True
             cont += 1
-            print(cont)
             keeper.main(r_Path)
+            self.signal_count.emit(cont)
             time.sleep(int(timer))
+
 
     def stop(self):
         self.is_running = False
@@ -118,6 +115,8 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ui.spinBox.setValue(1)
         self.Worker_inst = Worker(mainwindow=self)
         self.Worker2_inst = Worker2(mainwindow=self)
+
+
     def updater(self):
         self.ui.textBrowser.setText(visualizer())
 
@@ -135,25 +134,68 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         print(os.environ['Timer'])
         return sellected_time
 
+    #def setborder(self):
+    #    self.ui.pushButton_3.setStyleSheet("""
+    #    QWidget {
+    #        border: 1px solid green;
+    #        border-radius: 10px;
+    #        background-color: rgb(90, 90, 90);
+    #        }
+    #    """)
+
     def launch_thread(self):
+        self.ui.pushButton_3.setStyleSheet("""
+                QWidget {
+                    border: 1px solid green;
+                    border-radius: 10px;
+                    background-color: rgb(90, 90, 90);
+                    }
+                """)
+        self.ui.lcdNumber.setStyleSheet("""
+            QLCDNumber{color:rgb(20, 201, 208);
+            background-color:rgb(50, 50, 50);
+            border: 1px solid green;
+            border-radius: 8px;}""")
         self.thread[1] = self.Worker_inst
         self.thread[1].start()
+        self.thread[1].signal_count.connect(self.lcd_func)
         self.thread[2] = self.Worker2_inst
         self.thread[2].start()
         self.thread[2].signal.connect(self.progresbar_func)
 
+    #def launch_thread2(self, run):
+    #    run = run
+    #    if run == 1:
+
+
     def stop(self):
+        self.ui.pushButton_3.setStyleSheet("""
+                        QWidget {
+                            border: 1px solid red;
+                            border-radius: 10px;
+                            background-color: rgb(90, 90, 90);
+                            }
+                        """)
+        self.ui.lcdNumber.setStyleSheet("""
+                    QLCDNumber{color:rgb(0, 0, 0);
+                    background-color:rgb(50, 50, 50);
+                    border: 1px solid black;
+                    border-radius: 8px;}""")
         self.Worker_inst.stop()
         self.Worker2_inst.stop()
 
     def progresbar_func(self, piece_of_progres):
         piece = int(piece_of_progres)
-        print(piece)
         self.ui.progressBar.setValue(piece)
         if piece == 100:
+            piece = 0
             self.ui.progressBar.setValue(piece)
-            time.sleep(0.5)
-            self.ui.progressBar.setValue(0)
+
+
+    def lcd_func(self, count):
+        count = count
+        self.ui.lcdNumber.display(count)
+
 
 if __name__ == '__main__':
 

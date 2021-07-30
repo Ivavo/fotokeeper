@@ -16,6 +16,7 @@ python-dotenv==0.18.0
 python-magic-bin==0.4.14
 qt5-applications==5.15.2.2.2
 qt5-tools==5.15.2.1.2
+qThread==0.1.0
 requests==2.25.1
 tqdm==4.61.2
 urllib3==1.26.6

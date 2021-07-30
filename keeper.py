@@ -8,6 +8,8 @@ import magic
 import zipfile
 import pathlib
 import shutil
+
+from PyQt5 import QtCore
 from cryptography.fernet import Fernet
 from sys import platform
 from tqdm import tqdm
@@ -20,7 +22,6 @@ if platform == 'win32':
 elif platform == 'linux' or platform == 'linux2':
     path_separator = '/'
 
-#_route = pathlib.Path(__file__).parents[1]
 log_name = 'log.txt'
 sleep_time = 3
 
@@ -103,7 +104,7 @@ def logging(data, file_name):
     encrypt_data = crypto.encrypt(bytes_data)
     with open(file_name, 'wb') as log:
         log.write(encrypt_data)
-        print('logged')
+        #print('logged')
 
 
 def read_log(file_name):
@@ -159,48 +160,41 @@ def file_size_check(addr=pathlib.Path(__file__).parents[0]):
     return sizes
 
 
-def size_check(name=None, size=0):
+def size_check(name=None):
     name = name
-    file_size = 0
     file_size_bit = 0
     b = os.path.exists(name)
-    if name == None or b == False:
+    if name is None or b == False:
         pass
     else:
         file_size_bit = os.path.getsize(name)
-        file_size = file_size_bit // 1024
-        times.append(file_size)
-        print(name, file_size)
-        time.sleep(1)
-
     return file_size_bit
 
 
-
 def zipping_folder(addr, regime, name):
-
     dir_route = pathlib.Path(addr).iterdir()
     with zipfile.ZipFile(name, f'{regime}') as archive:
-        for file in tqdm(dir_route):
+        for file in dir_route:
             file = str(file)
             try:
                 file_res = file.split('.')[-1]
                 if file_res in file_formats:
                     archive.write(file)
-                    print(file)
                 else:
                     pass
             except IsADirectoryError:
                 continue
-times = []
+
+
 def make_fine_names(size2):
     names = []
     for items in size2:
         string = str(items[0])
         size = str(items[1] / 1024)
-        item = string + ': - ' + size + ' Mb ;'
+        item = string + ': - ' + size + ' Mb;'
         names.append(item)
     return names
+
 
 def archives_check(result_path):
 
@@ -214,9 +208,6 @@ def archives_check(result_path):
         if len(size_difference) != 0:
             for archives in size_difference:
                 name = archives[0]
-                #size = os.path.getsize(name) // 1024
-                #print(size)
-                name_path = os.path.join(result_path, name)
                 uploader(name, result_path)
         else:
             for i in size1:
@@ -244,29 +235,34 @@ def bin_reader(bin_file='settings.bin'):
 def main(result_path):
     archives_check(result_path)
     global images
-
+    print("operation0")
     try:
         program_route = pathlib.Path().iterdir()
         status = []
         content = {}
+        print("operation1")
         try:
             images, roads, dirs = new_seeker()
+            print('op1,1')
             for i in roads:
                 i1 = i[1]
                 content.update({i[0]: i1})
             p = str(content)
+            print('op1,2')
             for files in program_route:
                 status.append(str(files))
+            print('op1,2')
             if 'settings.bin' not in status:
                 bin_writer(result_path)
             else:
                 pass
+            print("operation2")
             r_path = bin_reader()
             if 'log1.bin' not in status or result_path != r_path or log_name not in status:
                 bin_writer(result_path)
                 bin_writer(str(content), 'log1.bin')
                 logging(images, log_name)
-                print('log_file not in directory making log file and archives!')
+                #print('log_file not in directory making log file and archives!')
                 for road in roads:
                     folder_path = str(road[0])
                     splited_string = folder_path.split(path_separator)
@@ -274,12 +270,10 @@ def main(result_path):
                     zipping_folder(folder_path, 'w', archives_name)
                     logging(images, log_name)
                     uploader(archives_name, result_path)
+                    print("operation3")
             elif log_name in status:
+                print("operation4")
                 try:
-                    p = user_interface.My_app()
-
-
-
                     images_log = ast.literal_eval(bin_reader('log1.bin'))
                     if content != images_log:
                         for key in content:
@@ -311,10 +305,11 @@ def main(result_path):
                     pass
 
         except FileNotFoundError:
+            print('saka kock')
             pass
             logging(images, log_name)
     except KeyboardInterrupt:
-        print("Job ended!")
+        #print("Job ended!")
         logging(images, log_name)
 
 

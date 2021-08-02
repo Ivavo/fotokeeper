@@ -50,8 +50,41 @@ class Ui_MainWindow(object):
         self.spinBox = QtWidgets.QSpinBox(self.centralwidget)
         self.spinBox.setGeometry(QtCore.QRect(210, 290, 51, 22))
         self.spinBox.setObjectName("spinBox")
+        self.spinBox.setStyleSheet("""
+        QWidget {
+            border: 1px solid grey;
+            border-radius: 10px;
+            background-color: rgb(50, 50, 50);
+            border-top-right-radius: 0px;
+            border-bottom-right-radius: 0px;
+            }
+        QSpinBox::up-button {border: 1px solid black;
+                            border-radius: 3px;
+                            border-bottom: 1px solid black;
+                            background-color: rgb(90, 90, 90);
+                            }
+        QSpinBox::up-button:pressed {border: 1px solid rgb(20, 201, 208);
+                                     background-color: rgb(50, 50, 50);}
+                            
+        QSpinBox::down-button {border: 1px solid black;
+                               border-top: 1px solid black;
+                               text: (-);
+                               color: rgb(255,155,155);
+                               background-color: rgb(90, 90, 90);
+                               }
+        QSpinBox::down-button:pressed {border: 1px solid rgb(20, 201, 208);
+                                     background-color: rgb(50, 50, 50);}
+        """)
         self.time_add = QtWidgets.QPushButton(self.centralwidget)
-        self.time_add.setGeometry(QtCore.QRect(260, 289, 24, 24))
+        self.time_add.setGeometry(QtCore.QRect(260, 290, 22, 22))
+        self.time_add.setStyleSheet("""
+        QWidget {
+            border: 1px solid grey;
+            border-radius: 10px;
+            border-top-left-radius: 0px;
+            border-bottom-left-radius: 0px;
+            background-color: rgb(90, 90, 90);
+            }""")
         self.time_add.setObjectName("time_add")
         self.label = QtWidgets.QLabel(self.centralwidget)
         self.label.setGeometry(QtCore.QRect(220, 270, 61, 20))
@@ -73,6 +106,7 @@ class Ui_MainWindow(object):
             border-radius: 10px;
             background-color: rgb(90, 90, 90);
             }
+        QPushButton:pressed {background-color: rgb(70, 70, 70)} 
         """)
         self.pushButton_3.setObjectName("pushButton_3")
         self.pushButton_4 = QtWidgets.QPushButton(self.centralwidget)
@@ -96,7 +130,12 @@ class Ui_MainWindow(object):
                                     color: rgb(20, 201, 208);
                                     background-color: rgb(50, 50, 50);
                                     border-radius: 8px}""")
+        self.label_3 = QtWidgets.QLabel(self.centralwidget)
+        self.label_3.setGeometry(QtCore.QRect(15, 270, 150, 15))
 
+        self.label_3.setStyleSheet("""QWidget{
+                                            color: rgb(20, 201, 208);
+                                            }""")
         self.textBrowser = QtWidgets.QTextBrowser(self.centralwidget)
         self.textBrowser.setGeometry(QtCore.QRect(10, 120, 281, 121))
         self.textBrowser.setStyleSheet("""
@@ -105,6 +144,7 @@ class Ui_MainWindow(object):
             border-radius: 10px;
             background-color: rgb(50, 50, 50);
             }
+        
         """)
         self.textBrowser.setTextColor(QColor(20, 201, 208))
         self.textBrowser.setObjectName("textBrowser")
@@ -119,14 +159,16 @@ class Ui_MainWindow(object):
 QProgressBar{
     border: 1px solid grey;
     background-color: rgb(50, 50, 50);
-    border-radius: 8px;
-    text-align: bottom;
-    color: rgb(20, 201, 208)
+    border-radius: 5px;
+    text-align: center;
+    color: rgb(0, 150, 158)
 }
 
 QProgressBar::chunk {
     background-color: rgb(20, 201, 210);
-    text-color: rgb(20, 201, 210)
+    text-color: rgb(20, 201, 210);
+    border-radius: 5px;
+    
 }
 """)
         MainWindow.setCentralWidget(self.centralwidget)

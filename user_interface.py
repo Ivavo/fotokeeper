@@ -8,6 +8,7 @@ from PyQt5 import QtWidgets, QtCore
 from pk import Ui_MainWindow
 import pathlib
 
+
 def init_settings():
     r_Path = None
     timer = None
@@ -28,22 +29,19 @@ def init_settings():
         r_Path = os.environ['r_Path']
     return timer, r_Path
 
-def visualizer(name = 'Images'):
+
+def visualizer(name='Images'):
     if name in os.environ:
         item = os.environ[name]
     else:
         item = 'None'
-        value = False
     return item
-
-
-def run_visualizer(text):
-    v = My_app()
-    v.ui.textBrowser.setText(text)
 
 
 class Worker2(QThread):
     signal = QtCore.pyqtSignal(int)
+    signal_name = QtCore.pyqtSignal(str)
+
     def __init__(self, mainwindow, parent = None):
         super().__init__()
         self.mainwindow = mainwindow
@@ -55,17 +53,24 @@ class Worker2(QThread):
             name = visualizer('File_Name')
             size = visualizer('Size')
             current_size = keeper.size_check(name)
+
             if current_size == 0:
                 time.sleep(1)
                 pass
             else:
                 piese_of_progres = (int(current_size)/int(size)) * 100
+                progres = piese_of_progres
                 self.signal.emit(piese_of_progres)
-            if progres >= 100:
-                os.environ.pop('File_Name')
-                os.environ.pop('Size')
+                self.signal_name.emit(str(name))
+            if progres == 100:
+                piese_of_progres, progres = 0, 0
+                if 'File_Name' and 'Size' in os.environ:
+                    os.environ.pop('File_Name')
+                    os.environ.pop('Size')
+                else:
+                    pass
+            self.signal_name.emit(str(name))
             time.sleep(1)
-
 
     def stop(self):
         self.is_running = False
@@ -75,6 +80,7 @@ class Worker2(QThread):
 
 class Worker(QThread):
     signal_count = QtCore.pyqtSignal(int)
+
     def __init__(self, mainwindow, parent = None):
         super().__init__()
         self.mainwindow = mainwindow
@@ -90,7 +96,6 @@ class Worker(QThread):
             self.signal_count.emit(cont)
             time.sleep(int(timer))
 
-
     def stop(self):
         self.is_running = False
         self.terminate()
@@ -103,8 +108,9 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         super(My_app, self).__init__()
         self.thread={}
         self.ui = Ui_MainWindow()
-        self.timer = QTimer()
         self.ui.setupUi(self)
+        self.timer = QTimer()
+        self.ui.label_3.setText('none')
         self.timer.timeout.connect(self.updater)
         self.timer.start(10000)
         self.ui.pushButton_2.clicked.connect(self.set_target_folder)
@@ -113,6 +119,7 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.ui.lineEdit_2.setText(init_settings()[1])
         self.ui.time_add.clicked.connect(self.time_sellector)
         self.ui.spinBox.setValue(1)
+        self.ui.spinBox.setMaximum(10000)
         self.Worker_inst = Worker(mainwindow=self)
         self.Worker2_inst = Worker2(mainwindow=self)
 
@@ -128,20 +135,8 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def time_sellector(self):
         sellected_time = self.ui.spinBox.value()
-
         os.environ['Timer'] = str(sellected_time)
-        print(type(os.environ['Timer']))
-        print(os.environ['Timer'])
         return sellected_time
-
-    #def setborder(self):
-    #    self.ui.pushButton_3.setStyleSheet("""
-    #    QWidget {
-    #        border: 1px solid green;
-    #        border-radius: 10px;
-    #        background-color: rgb(90, 90, 90);
-    #        }
-    #    """)
 
     def launch_thread(self):
         self.ui.pushButton_3.setStyleSheet("""
@@ -150,6 +145,7 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
                     border-radius: 10px;
                     background-color: rgb(90, 90, 90);
                     }
+                QPushButton:pressed {background-color: rgb(70, 70, 70)}
                 """)
         self.ui.lcdNumber.setStyleSheet("""
             QLCDNumber{color:rgb(20, 201, 208);
@@ -161,11 +157,8 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.thread[1].signal_count.connect(self.lcd_func)
         self.thread[2] = self.Worker2_inst
         self.thread[2].start()
+        self.thread[2].signal_name.connect(self.proces_function)
         self.thread[2].signal.connect(self.progresbar_func)
-
-    #def launch_thread2(self, run):
-    #    run = run
-    #    if run == 1:
 
 
     def stop(self):
@@ -174,7 +167,8 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
                             border: 1px solid red;
                             border-radius: 10px;
                             background-color: rgb(90, 90, 90);
-                            }
+                            } 
+                        QPushButton:pressed {background-color: rgb(70, 70, 70)}
                         """)
         self.ui.lcdNumber.setStyleSheet("""
                     QLCDNumber{color:rgb(0, 0, 0);
@@ -185,12 +179,20 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.Worker2_inst.stop()
 
     def progresbar_func(self, piece_of_progres):
+
         piece = int(piece_of_progres)
         self.ui.progressBar.setValue(piece)
         if piece == 100:
             piece = 0
             self.ui.progressBar.setValue(piece)
 
+    def proces_function(self, name):
+        name = name
+        print(name)
+        arc_name = name.split('\\')[-1]
+        self.ui.label_3.setText(str(arc_name)+'...')
+        if arc_name == 'None':
+            self.ui.label_3.setText('Архіви не вигружаються...')
 
     def lcd_func(self, count):
         count = count

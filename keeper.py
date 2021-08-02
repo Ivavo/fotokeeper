@@ -8,11 +8,8 @@ import magic
 import zipfile
 import pathlib
 import shutil
-
-from PyQt5 import QtCore
 from cryptography.fernet import Fernet
 from sys import platform
-from tqdm import tqdm
 import ast
 import user_interface
 
@@ -22,7 +19,10 @@ if platform == 'win32':
 elif platform == 'linux' or platform == 'linux2':
     path_separator = '/'
 
-log_name = 'log.txt'
+
+settings_name = 'settings.bin'
+adr_log_bin = 'adr_log.bin'
+log_name = 'log.bin'
 sleep_time = 3
 
 
@@ -80,15 +80,19 @@ def new_seeker():
         for file in road_element[1]:
             file_path = os.path.join(road_element[0], file)
             try:
-                file_format_name = magic.from_buffer(file_path, mime=True).split('/')
+                #file_format_name[0] == 'image' or
+                #file_format_name = magic.from_buffer(file_path, mime=True).split('/')
                 file_resolution = file_path.split('.')[-1]
-                if file_format_name[0] == 'image' or file_resolution in file_formats:
+                if file_resolution in file_formats:
                     files.append(file)
             except IsADirectoryError:
                 pass
-
     return files, roads, dirs
 
+def write_key():
+    key = Fernet.generate_key()
+    with open('config.bin', 'wb') as key_file:
+        key_file.write(key)
 
 def load_key():
     with open('key.txt', 'rb') as key_file:
@@ -104,7 +108,6 @@ def logging(data, file_name):
     encrypt_data = crypto.encrypt(bytes_data)
     with open(file_name, 'wb') as log:
         log.write(encrypt_data)
-        #print('logged')
 
 
 def read_log(file_name):
@@ -139,9 +142,8 @@ def uploader(archive_name=None, result_path='Y:\main'):
             print('error')
     else:
         path_to_archive = os.path.join(sourse_road, archive_name)
-        print(archive_name)
+        #print(archive_name)
         size = os.path.getsize(archive_name)
-        print(type(size))
         os.environ['Size'] = str(size)
         os.environ['File_Name'] = os.path.join(result_path, archive_name)
         shutil.copy(path_to_archive, result_path)
@@ -235,32 +237,31 @@ def bin_reader(bin_file='settings.bin'):
 def main(result_path):
     archives_check(result_path)
     global images
-    print("operation0")
     try:
         program_route = pathlib.Path().iterdir()
         status = []
         content = {}
-        print("operation1")
+
         try:
             images, roads, dirs = new_seeker()
-            print('op1,1')
+
             for i in roads:
                 i1 = i[1]
                 content.update({i[0]: i1})
             p = str(content)
-            print('op1,2')
+
             for files in program_route:
                 status.append(str(files))
-            print('op1,2')
-            if 'settings.bin' not in status:
+
+            if settings_name not in status:
                 bin_writer(result_path)
             else:
                 pass
-            print("operation2")
+
             r_path = bin_reader()
-            if 'log1.bin' not in status or result_path != r_path or log_name not in status:
+            if adr_log_bin not in status or result_path != r_path or log_name not in status:
                 bin_writer(result_path)
-                bin_writer(str(content), 'log1.bin')
+                bin_writer(str(content), adr_log_bin)
                 logging(images, log_name)
                 #print('log_file not in directory making log file and archives!')
                 for road in roads:
@@ -270,11 +271,11 @@ def main(result_path):
                     zipping_folder(folder_path, 'w', archives_name)
                     logging(images, log_name)
                     uploader(archives_name, result_path)
-                    print("operation3")
+
             elif log_name in status:
-                print("operation4")
+
                 try:
-                    images_log = ast.literal_eval(bin_reader('log1.bin'))
+                    images_log = ast.literal_eval(bin_reader(adr_log_bin))
                     if content != images_log:
                         for key in content:
                             name = key.split('\\')[-1]+'.zip'
@@ -282,7 +283,7 @@ def main(result_path):
                             if key not in images_log and len(current_content) != 0:
                                 zipping_folder(key, 'w', name)
 
-                                bin_writer(str(content), 'log1.bin')
+                                bin_writer(str(content), adr_log_bin)
                             elif key in images_log:
                                 log_content = images_log[key]
                                 if current_content != log_content and len(current_content) != 0:
@@ -293,19 +294,18 @@ def main(result_path):
                                         pass
                                     elif len(current_content) >= len(log_content):
                                         zipping_folder(key, 'w', name)
-                                        bin_writer(str(content), 'log1.bin')
+                                        bin_writer(str(content), adr_log_bin)
                                 else:
-                                    bin_writer(str(content), 'log1.bin')
+                                    bin_writer(str(content), adr_log_bin)
                                     pass
                     else:
-                        bin_writer(str(content), 'log1.bin')
+                        bin_writer(str(content), adr_log_bin)
                         pass
 
                 except FileNotFoundError:
                     pass
 
         except FileNotFoundError:
-            print('saka kock')
             pass
             logging(images, log_name)
     except KeyboardInterrupt:

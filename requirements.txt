@@ -1,12 +1,19 @@
+astroid==2.6.5
 certifi==2021.5.30
 cffi==1.14.5
 chardet==4.0.0
 click==7.1.2
 colorama==0.4.4
+coverage==5.5
 cryptography==3.4.7
 idna==2.10
+isort==5.9.3
+lazy-object-proxy==1.6.0
+mccabe==0.6.1
 psycopg2==2.9.1
 pycparser==2.20
+pylint==2.9.6
+pylint-quotes==0.2.3
 PyQt5==5.15.4
 pyqt5-plugins==5.15.4.2.2
 PyQt5-Qt5==5.15.2
@@ -18,5 +25,7 @@ qt5-applications==5.15.2.2.2
 qt5-tools==5.15.2.1.2
 qThread==0.1.0
 requests==2.25.1
+toml==0.10.2
 tqdm==4.61.2
 urllib3==1.26.6
+wrapt==1.12.1

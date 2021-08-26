@@ -1,7 +1,7 @@
 import sys
 import time
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtCore import QThread, QObject, pyqtSignal, pyqtSlot, QTimer
+from PyQt5.QtWidgets import QFileDialog, QMessageBox
+from PyQt5.QtCore import QThread, QTimer
 import os
 import keeper
 from PyQt5 import QtWidgets, QtCore
@@ -10,8 +10,7 @@ import pathlib
 
 
 def init_settings():
-    r_Path = None
-    timer = None
+    r_path = None
     if 'Timer' not in os.environ:
         timer = 1
     else:
@@ -21,13 +20,13 @@ def init_settings():
         for item in items:
             name = str(item)
             if name == 'settings.bin':
-                r_Path = keeper.bin_reader('settings.bin')
+                r_path = keeper.bin_reader('settings.bin')
                 break
             else:
-                r_Path = 'Виберіть цільову директорію'
+                r_path = 'Виберіть цільову директорію'
     else:
-        r_Path = os.environ['r_Path']
-    return timer, r_Path
+        r_path = os.environ['r_Path']
+    return timer, r_path
 
 
 def visualizer(name='Images'):
@@ -42,7 +41,7 @@ class Worker2(QThread):
     signal = QtCore.pyqtSignal(int)
     signal_name = QtCore.pyqtSignal(str)
 
-    def __init__(self, mainwindow, parent = None):
+    def __init__(self, mainwindow):
         super().__init__()
         self.mainwindow = mainwindow
         self.is_running = True
@@ -55,6 +54,9 @@ class Worker2(QThread):
             current_size = keeper.size_check(name)
 
             if current_size == 0:
+                message = keeper.message
+                print(message)
+                self.signal_name.emit(message)
                 time.sleep(1)
                 pass
             else:
@@ -69,7 +71,7 @@ class Worker2(QThread):
                     os.environ.pop('Size')
                 else:
                     pass
-            self.signal_name.emit(str(name))
+            #self.signal_name.emit(str(name))
             time.sleep(1)
 
     def stop(self):
@@ -81,55 +83,56 @@ class Worker2(QThread):
 class Worker(QThread):
     signal_count = QtCore.pyqtSignal(int)
 
-    def __init__(self, mainwindow, parent = None):
+    def __init__(self, mainwindow):
         super().__init__()
         self.mainwindow = mainwindow
         self.is_running = True
 
     def run(self):
         cont = 0
-        timer, r_Path = init_settings()
+        timer, r_path = init_settings()
         while True:
             self.is_running = True
             cont += 1
-            keeper.main(r_Path)
-            self.signal_count.emit(cont)
-            time.sleep(int(timer))
-
+            try:
+                keeper.main(r_path)
+                self.signal_count.emit(cont)
+                time.sleep(int(timer))
+            except:
+                exit()
     def stop(self):
         self.is_running = False
         self.terminate()
         self.quit()
 
 
-class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
+class MyApp(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def __init__(self):
-        super(My_app, self).__init__()
-        self.thread={}
+        super(MyApp, self).__init__()
+        self.thread = {}
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
         self.timer = QTimer()
-        self.ui.label_3.setText('none')
+        self.ui.label_3.setText('Немае завдань...')
         self.timer.timeout.connect(self.updater)
         self.timer.start(10000)
-        self.ui.pushButton_2.clicked.connect(self.set_target_folder)
-        self.ui.pushButton_3.clicked.connect(self.launch_thread)
-        self.ui.pushButton_4.clicked.connect(self.stop)
-        self.ui.lineEdit_2.setText(init_settings()[1])
+        self.ui.pushButton_result_path_edit.clicked.connect(self.set_target_folder)
+        self.ui.pushButton_start.clicked.connect(self.launch_thread)
+        self.ui.pushButton_stop.clicked.connect(self.stop)
+        self.ui.lineEdit_result_path.setText(init_settings()[1])
         self.ui.time_add.clicked.connect(self.time_sellector)
         self.ui.spinBox.setValue(1)
         self.ui.spinBox.setMaximum(10000)
         self.Worker_inst = Worker(mainwindow=self)
         self.Worker2_inst = Worker2(mainwindow=self)
 
-
     def updater(self):
         self.ui.textBrowser.setText(visualizer())
 
     def set_target_folder(self):
         target_directory = QFileDialog.getExistingDirectory()
-        self.ui.lineEdit_2.setText(os.path.join(target_directory))
+        self.ui.lineEdit_result_path.setText(os.path.join(target_directory))
         os.environ['r_Path'] = target_directory
         return target_directory
 
@@ -139,7 +142,7 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         return sellected_time
 
     def launch_thread(self):
-        self.ui.pushButton_3.setStyleSheet("""
+        self.ui.pushButton_start.setStyleSheet("""
                 QWidget {
                     border: 1px solid green;
                     border-radius: 10px;
@@ -160,9 +163,8 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.thread[2].signal_name.connect(self.proces_function)
         self.thread[2].signal.connect(self.progresbar_func)
 
-
     def stop(self):
-        self.ui.pushButton_3.setStyleSheet("""
+        self.ui.pushButton_start.setStyleSheet("""
                         QWidget {
                             border: 1px solid red;
                             border-radius: 10px;
@@ -179,7 +181,6 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         self.Worker2_inst.stop()
 
     def progresbar_func(self, piece_of_progres):
-
         piece = int(piece_of_progres)
         self.ui.progressBar.setValue(piece)
         if piece == 100:
@@ -192,19 +193,20 @@ class My_app(QtWidgets.QMainWindow, Ui_MainWindow):
         arc_name = name.split('\\')[-1]
         self.ui.label_3.setText(str(arc_name)+'...')
         if arc_name == 'None':
-            self.ui.label_3.setText('Архіви не вигружаються...')
+            self.ui.label_3.setText('Немае завдань...')
 
     def lcd_func(self, count):
         count = count
         self.ui.lcdNumber.display(count)
 
 
+
+
+
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
 
-    application = My_app()
+    application = MyApp()
     application.show()
     sys.exit(app.exec_())
-
-
